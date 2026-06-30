@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Among Us 3D - El Bot Impostor te Persigue</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #050510;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* --- ESTILOS DEL MENÚ DE INICIO --- */
+    #startMenu {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle, #0f172a 0%, #020617 100%);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .menu-card {
+      width: 400px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 30px;
+      border-radius: 20px;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+      text-align: center;
+    }
+
+    .menu-card h1 {
+      margin-top: 0;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .form-group {
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #94a3b8;
+    }
+
+    .form-group select, .form-group input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: white;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    #startPlayBtn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #22c55e;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+      transition: all 0.2s;
+    }
+
+    #startPlayBtn:hover {
+      background: #16a34a;
+      transform: translateY(-2px);
+    }
+
+    /* --- INTERFAZ DEL JUEGO --- */
+    #info, #hud {
+      position: fixed;
+      color: white;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 15px 20px;
+      border-radius: 12px;
+      z-index: 10;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: none;
+    }
+
+    #info { top: 15px; left: 15px; }
+    #hud { top: 15px; right: 15px; width: 260px; }
+
+    span { font-weight: bold; color: #38bdf8; }
+    .role-crewmate { color: #22c55e !important; }
+    .role-impostor { color: #ef4444 !important; }
+
+    #progressOuter {
+      width: 100%; height: 16px; background: #020617;
+      border-radius: 20px; overflow: hidden; margin-top: 8px;
+      border: 1px solid #334155;
+    }
+
+    #progressInner {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #22c55e, #84cc16);
+      transition: width 0.3s;
+    }
+
+    #killBtn {
+      margin-top: 12px; width: 100%; padding: 12px; border: none;
+      border-radius: 10px; background: #dc2626; color: white;
+      font-weight: bold; font-size: 16px; cursor: pointer; display: none;
+      box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); border: 2px solid #ef4444;
+    }
+
+    #killBtn:disabled {
+      background: #475569; border-color: #64748b;
+      box-shadow: none; cursor: not-allowed; opacity: 0.6;
+    }
+
+    #taskHint {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      color: white; background: rgba(0,0,0,0.75); padding: 12px 22px;
+      border-radius: 12px; z-index: 20; display: none;
+    }
+
+    #message {
+      position: fixed; top: 120px; left: 50%; transform: translateX(-50%);
+      color: white; background: rgba(15, 23, 42, 0.95); padding: 14px 24px;
+      border-radius: 12px; z-index: 50; display: none;
+      border: 1px solid #38bdf8; font-size: 18px; font-weight: bold; text-align: center;
+    }
+
+    #modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 100; display: none; align-items: center; justify-content: center;
+    }
+
+    #modalContent {
+      width: 520px; min-height: 320px; background: #0f172a; color: white;
+      border-radius: 20px; padding: 25px; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+      border: 2px solid #38bdf8; text-align: center;
+    }
+
+    .closeBtn {
+      margin-top: 20px; padding: 10px 20px; border: none;
+      border-radius: 10px; background: #475569; color: white; cursor: pointer;
+    }
+
+    .wireRow { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; }
+    .wireBtn { width: 130px; height: 42px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; font-size: 15px; }
+    .gameButton { padding: 14px 18px; margin: 8px; border: none; border-radius: 12px; background: #1e293b; color: white; cursor: pointer; font-weight: bold; border: 2px solid #475569; }
+    .gameButton.active { background: #22c55e; border-color: #86efac; }
+    #holdBtn { margin-top: 30px; padding: 18px 35px; border: none; border-radius: 14px; background: #2563eb; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+    #miniProgressOuter { width: 100%; height: 25px; background: #020617; border-radius: 20px; overflow: hidden; margin-top: 25px; border: 1px solid #64748b; }
+    #miniProgressInner { height: 100%; width: 0%; background: #22c55e; }
+  </style>
+</head>
+<body>
+
+  <div id="startMenu">
+    <div class="menu-card">
+      <h1>AMONG US 3D</h1>
+      
+      <div class="form-group">
+        <label for="roleSelect">Elige tu Rol:</label>
+        <select id="roleSelect">
+          <option value="crewmate">Tripulante (Hacer tareas y huir del Bot)</option>
+          <option value="impostor">Impostor (Eliminar bots)</option>
+          <option value="random" selected>Al Azar</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="botCount">Cantidad de Bots (1 - 10):</label>
+        <input type="number" id="botCount" min="1" max="10" value="3">
+      </div>
+
+      <button id="startPlayBtn">INICIAR PARTIDA</button>
+    </div>
+  </div>
+
+  <div id="info">
+    <span>WASD</span>: Moverse<br>
+    <span>Shift</span>: Correr<br>
+    <span>Espacio</span>: Saltar<br>
+    <span id="actionBind">E</span>: Hacer tarea
+  </div>
+
+  <div id="hud">
+    <div>Rol: <span id="playerRole">Asignando...</span></div>
+    <div id="botsAliveHud">Objetivos vivos: <span id="botsAliveText">0</span></div>
+    <div id="taskHudSection">Tareas: <span id="taskText">0/3</span></div>
+    <div id="progressOuter">
+      <div id="progressInner"></div>
+    </div>
+    <button id="killBtn">ELIMINAR (Q)</button>
+    <button id="reportBtn" style="margin-top:12px;width:100%;padding:10px;border:none;border-radius:10px;background:#f97316;color:white;font-weight:bold;cursor:pointer;">REPORTAR</button>
+  </div>
+
+  <div id="taskHint">Presiona E para hacer tarea</div>
+  <div id="message"></div>
+
+  <div id="modal">
+    <div id="modalContent"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+    // --- MULTIJUGADOR SOCKET.IO ---
+    const socket = io();
+    let mySocketId = null;
+    const onlinePlayers = {};
+    const remotePlayerMeshes = {};
+
+    // --- VARIABLES GLOBALES DEL JUEGO ---
+    let isImpostor = false;
+    let gameOver = false;
+    let gameStarted = false;
+    let totalBots = 3;
+    const crewmateBots = []; 
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a16);
+    scene.fog = new THREE.FogExp2(0x0a0a16, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xa5b4fc, 0.8);
+    dirLight.position.set(20, 40, 20);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0x00ffff, 0.5, 30);
+    pointLight.position.set(0, 5, 0);
+    scene.add(pointLight);
+
+    const collidableObjects = [];
+
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(60, 1, 60),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
+    );
+    floor.position.y = -0.5;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    function createWall(x, z, sx, sz, color = 0x475569) {
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(sx, 4, sz),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.5 })
+      );
+      wall.position.set(x, 2, z);
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      scene.add(wall);
+      collidableObjects.push(new THREE.Box3().setFromObject(wall));
+    }
+
+    // Estructura de Muros
+    createWall(0, -30, 60, 2, 0x334155);
+    createWall(0, 30, 60, 2, 0x334155);
+    createWall(-30, 0, 2, 60, 0x334155);
+    createWall(30, 0, 2, 60, 0x334155);
+
+    createWall(-10, -10, 2, 16);
+    createWall(10, -10, 2, 16);
+    createWall(-16, -2, 14, 2);
+    createWall(16, -2, 14, 2);
+    createWall(0, -15, 6, 6, 0x0284c7);
+
+    createWall(-15, 10, 14, 2);
+    createWall(-8, 18, 2, 14);
+
+    createWall(-20, -10, 10, 2);
+    createWall(-15, -5, 2, 12);
+    createWall(-24, -18, 4, 4, 0x22c55e);
+
+    createWall(15, 12, 16, 2);
+    createWall(7, 20, 2, 14);
+    createWall(18, 20, 4, 6, 0xe11d48);
+
+    createWall(0, 18, 2, 12);
+
+    function createRoomLabel(text, x, z) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 256; canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      ctx.font = "Bold 28px Arial"; ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
+      ctx.fillText(text, 128, 40);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.position.set(x, 5, z); sprite.scale.set(6, 1.5, 1);
+      scene.add(sprite);
+    }
+
+    createRoomLabel("CAFETERÍA", 0, -15);
+    createRoomLabel("ELECTRICIDAD", -18, 18);
+    createRoomLabel("REACTOR", -24, -12);
+    createRoomLabel("ADMINISTRACIÓN", 18, 20);
+
+    function createTaskStation(id, type, x, z, color, label) {
+      const group = new THREE.Group();
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(1.7, 1.5, 1.7),
+        new THREE.MeshStandardMaterial({ color, metalness: 0.3, emissive: color, emissiveIntensity: 0.15 })
+      );
+      base.position.y = 0.75; base.castShadow = true; group.add(base);
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35, 24, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x38bdf8, emissiveIntensity: 1 })
+      );
+      marker.position.y = 2.2; group.add(marker);
+      group.position.set(x, 0, z); scene.add(group);
+      collidableObjects.push(new THREE.Box3().setFromObject(base));
+      return { id, type, label, position: new THREE.Vector3(x, 0, z), completed: false, marker };
+    }
+
+    const taskStations = [
+      createTaskStation("wires", "wires", -2, -22, 0x00ffcc, "Conectar cables"),
+      createTaskStation("buttons", "buttons", -21, 25, 0xeab308, "Activar botones"),
+      createTaskStation("progress", "progress", 22, 25, 0xa855f7, "Subir datos")
+    ];
+
+    // --- CREADOR DE JUGADORES/BOTS ---
+    function createCrewmateMesh(colorHex) {
+      const group = new THREE.Group();
+      const bMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.6 });
+      const vMat = new THREE.MeshStandardMaterial({ color: 0xbee3f8, metalness: 0.1, roughness: 0.1 });
+
+      const bodyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.7, 1.2, 8, 16), bMat);
+      bodyMesh.position.y = 1.3; bodyMesh.castShadow = true; group.add(bodyMesh);
+
+      const visorMesh = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 16), vMat);
+      visorMesh.scale.set(1.3, 0.65, 0.4); visorMesh.position.set(0, 1.6, 0.6); visorMesh.castShadow = true; group.add(visorMesh);
+
+      const backpackMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.0, 0.45), bMat);
+      backpackMesh.position.set(0, 1.25, -0.75); backpackMesh.castShadow = true; group.add(backpackMesh);
+
+      const legGeo = new THREE.BoxGeometry(0.3, 0.5, 0.4);
+      const l1 = new THREE.Mesh(legGeo, bMat); l1.position.set(-0.25, 0.25, 0); group.add(l1);
+      const l2 = new THREE.Mesh(legGeo, bMat); l2.position.set(0.25, 0.25, 0); group.add(l2);
+
+      return group;
+    }
+
+    function addRemotePlayer(data) {
+      if (!data || !data.id || data.id === mySocketId || remotePlayerMeshes[data.id]) return;
+      const mesh = createCrewmateMesh(data.color || 0x2563eb);
+      mesh.position.set(data.position?.x || 0, data.position?.y || 0, data.position?.z || 0);
+      mesh.rotation.y = data.rotationY || 0;
+      scene.add(mesh);
+      remotePlayerMeshes[data.id] = mesh;
+      onlinePlayers[data.id] = data;
+    }
+
+    function updateRemotePlayer(data) {
+      if (!data || !data.id || data.id === mySocketId) return;
+      if (!remotePlayerMeshes[data.id]) addRemotePlayer(data);
+      const mesh = remotePlayerMeshes[data.id];
+      if (!mesh) return;
+      mesh.position.set(data.position?.x || 0, data.position?.y || 0, data.position?.z || 0);
+      mesh.rotation.y = data.rotationY || 0;
+      if (data.alive === false) {
+        mesh.rotation.z = Math.PI / 2;
+        mesh.position.y = 0.2;
+      }
+      onlinePlayers[data.id] = data;
+    }
+
+    function removeRemotePlayer(id) {
+      const mesh = remotePlayerMeshes[id];
+      if (mesh) {
+        scene.remove(mesh);
+        delete remotePlayerMeshes[id];
+      }
+      delete onlinePlayers[id];
+    }
+
+    socket.on("yourPlayerId", (id) => {
+      mySocketId = id;
+    });
+
+    socket.on("currentPlayers", (players) => {
+      Object.values(players).forEach(addRemotePlayer);
+    });
+
+    socket.on("playerJoined", addRemotePlayer);
+    socket.on("playerMoved", updateRemotePlayer);
+    socket.on("playerUpdated", updateRemotePlayer);
+    socket.on("playerLeft", removeRemotePlayer);
+
+    socket.on("meetingReported", ({ name }) => {
+      showMessage(`${name} reportó una emergencia.`);
+    });
+
+    socket.on("remoteTaskCompleted", ({ playerId, taskId }) => {
+      const remote = onlinePlayers[playerId];
+      const remoteName = remote?.name || "Otro jugador";
+      showMessage(`${remoteName} completó una tarea: ${taskId}`);
+    });
+
+    // Jugador Principal (Rojo)
+    const player = createCrewmateMesh(0xda2525);
+    const playerRadius = 0.7;
+    player.position.set(0, 0, 5);
+    scene.add(player);
+
+    // --- CONTROLES Y HUD ELEMENTOS ---
+    const keys = {};
+    let velocityY = 0; let isGrounded = true;
+    let activeTask = null; let modalOpen = false; let completedTasks = 0;
+
+    const taskHint = document.getElementById("taskHint");
+    const modal = document.getElementById("modal");
+    const modalContent = document.getElementById("modalContent");
+    const message = document.getElementById("message");
+    const taskText = document.getElementById("taskText");
+    const progressInner = document.getElementById("progressInner");
+    const killBtn = document.getElementById("killBtn");
+    const reportBtn = document.getElementById("reportBtn");
+    const playerRoleEl = document.getElementById("playerRole");
+    const actionBindEl = document.getElementById("actionBind");
+    const taskHudSection = document.getElementById("taskHudSection");
+    const progressOuter = document.getElementById("progressOuter");
+    const botsAliveHud = document.getElementById("botsAliveHud");
+    const botsAliveText = document.getElementById("botsAliveText");
+
+    // --- INICIALIZACIÓN POR MENÚ ---
+    document.getElementById("startPlayBtn").addEventListener("click", () => {
+      const roleChoice = document.getElementById("roleSelect").value;
+      totalBots = parseInt(document.getElementById("botCount").value) || 3;
+      if(totalBots < 1) totalBots = 1;
+      if(totalBots > 10) totalBots = 10;
+
+      if (roleChoice === "random") {
+        isImpostor = Math.random() < 0.5;
+      } else {
+        isImpostor = roleChoice === "impostor";
+      }
+
+      const safeSpawnPoints = [
+        {x: 12, z: 20}, {x: -18, z: 18}, {x: -24, z: -12}, {x: 0, z: -12},
+        {x: 20, z: -20}, {x: -20, z: 2}, {x: 15, z: -5}, {x: -5, z: 25},
+        {x: 5, z: 25}, {x: 22, z: 5}
+      ];
+
+      // Determinar cuál bot será el impostor en caso de que tú seas tripulante
+      let secretBotImpostorIndex = -1;
+      if (!isImpostor) {
+        secretBotImpostorIndex = Math.floor(Math.random() * totalBots);
+      }
+
+      for (let i = 0; i < totalBots; i++) {
+        let isThisBotImpostor = (i === secretBotImpostorIndex);
+        
+        // Si el bot es impostor lo pintamos levemente más oscuro/morado o negro para identificarlo, o azul si quieres total misterio.
+        // Vamos a ponerlo Negro/Oscuro para que el jugador sepa de quién huir.
+        let botColor = isThisBotImpostor ? 0x202025 : 0x2563eb; 
+
+        const botMesh = createCrewmateMesh(botColor); 
+        const pt = safeSpawnPoints[i % safeSpawnPoints.length];
+        botMesh.position.set(pt.x + (Math.random() - 0.5) * 2, 0, pt.z + (Math.random() - 0.5) * 2);
+        scene.add(botMesh);
+
+        crewmateBots.push({ 
+          mesh: botMesh, 
+          alive: true, 
+          isBotImpostor: isThisBotImpostor 
+        });
+      }
+
+      document.getElementById("startMenu").style.display = "none";
+      document.getElementById("info").style.display = "block";
+      document.getElementById("hud").style.display = "block";
+
+      if (isImpostor) {
+        playerRoleEl.textContent = "IMPOSTOR";
+        playerRoleEl.className = "role-impostor";
+        killBtn.style.display = "block";
+        actionBindEl.textContent = "Q";
+        document.getElementById("info").innerHTML = `<span>WASD</span>: Moverse<br><span>Shift</span>: Correr<br><span>Espacio</span>: Saltar<br><span>Q</span>: Eliminar Tripulante`;
+        taskHudSection.style.display = "none";
+        progressOuter.style.display = "none";
+        botsAliveHud.style.display = "block";
+        botsAliveText.textContent = totalBots;
+        taskStations.forEach(t => t.marker.visible = false);
+        showMessage(`Eres el IMPOSTOR.<br>Elimina a los ${totalBots} tripulantes.`);
+      } else {
+        playerRoleEl.textContent = "TRIPULANTE";
+        playerRoleEl.className = "role-crewmate";
+        killBtn.style.display = "none";
+        botsAliveHud.style.display = "none";
+        showMessage("¡Eres TRIPULANTE!<br>Completa tus tareas y HUYE del Impostor oscuro.");
+      }
+
+      gameStarted = true;
+
+      socket.emit("setPlayerInfo", {
+        name: isImpostor ? "Impostor Rojo" : "Tripulante Rojo",
+        role: isImpostor ? "impostor" : "crewmate"
+      });
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (!gameStarted) return;
+      keys[e.key.toLowerCase()] = true;
+
+      if (e.key.toLowerCase() === "e" && !isImpostor && activeTask && !modalOpen && !activeTask.completed) {
+        openTask(activeTask);
+      }
+      if (e.key.toLowerCase() === "q" && isImpostor && !gameOver) {
+        tryKillAction();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
+    killBtn.addEventListener("click", () => { if(gameStarted && !gameOver) tryKillAction(); });
+    reportBtn.addEventListener("click", () => {
+      if (!gameStarted) return;
+      socket.emit("report");
+      showMessage("Reporte enviado. Reunión convocada.");
+    });
+
+    function tryKillAction() {
+      let target = null;
+      let minDistance = 3.5;
+
+      for (const bot of crewmateBots) {
+        if (bot.alive) {
+          const distance = player.position.distanceTo(bot.mesh.position);
+          if (distance < minDistance) {
+            minDistance = distance;
+            target = bot;
+          }
+        }
+      }
+
+      if (target) {
+        target.alive = false;
+        target.mesh.rotation.z = Math.PI / 2;
+        target.mesh.position.y = 0.2;
+
+        const aliveCount = crewmateBots.filter(b => b.alive).length;
+        botsAliveText.textContent = aliveCount;
+
+        if (aliveCount === 0) {
+          triggerGameEnd(true, "¡VICTORIA DEL IMPOSTOR!<br>Has eliminado a toda la tripulación.");
+        } else {
+          showMessage("¡Tripulante eliminado! Faltan " + aliveCount);
+        }
+      }
+    }
+
+    function triggerGameEnd(victory, text) {
+      gameOver = true;
+      showMessage(text);
+    }
+
+    function showMessage(text) {
+      message.innerHTML = text;
+      message.style.display = "block";
+      if(!gameOver) {
+        setTimeout(() => { message.style.display = "none"; }, 3500);
+      }
+    }
+
+    function updateHud() {
+      if (isImpostor) return;
+      taskText.textContent = `${completedTasks}/3`;
+      progressInner.style.width = `${(completedTasks / 3) * 100}%`;
+      if (completedTasks === 3 && !gameOver) {
+        triggerGameEnd(true, "¡VICTORIA DE LOS TRIPULANTES!<br>Todas las tareas completadas.");
+      }
+    }
+
+    function completeTask(task) {
+      if (task.completed) return;
+      task.completed = true;
+      task.marker.material.color.set(0x22c55e);
+      task.marker.material.emissive.set(0x22c55e);
+      completedTasks++;
+      updateHud();
+      closeModal();
+      showMessage(`Tarea completada: ${task.label}`);
+      socket.emit("taskCompleted", { taskId: task.id });
+    }
+
+    function closeModal() {
+      modalOpen = false;
+      modal.style.display = "none";
+      modalContent.innerHTML = "";
+    }
+
+    function openTask(task) {
+      modalOpen = true;
+      modal.style.display = "flex";
+      if (task.type === "wires") renderWiresTask(task);
+      if (task.type === "buttons") renderButtonsTask(task);
+      if (task.type === "progress") renderProgressTask(task);
+    }
+
+    // --- MINIJUEGOS DE TAREAS ---
+    function renderWiresTask(task) {
+      const colors = [{ name: "Rojo", color: "#ef4444" }, { name: "Azul", color: "#3b82f6" }, { name: "Verde", color: "#22c55e" }];
+      let selected = null; let connected = 0;
+      modalContent.innerHTML = `<h2>Conectar cables</h2><p>Selecciona el izquierdo y luego su mismo color a la derecha.</p><div id="wireGame"></div><button class="closeBtn" id="closeModal">Cerrar</button>`;
+      const wireGame = document.getElementById("wireGame");
+      colors.forEach((item) => {
+        const row = document.createElement("div"); row.className = "wireRow";
+        const left = document.createElement("button"); left.className = "wireBtn"; left.textContent = item.name; left.style.background = item.color;
+        const right = document.createElement("button"); right.className = "wireBtn"; right.textContent = item.name; right.style.background = item.color;
+        left.onclick = () => { selected = item.name; left.style.outline = "4px solid white"; };
+        right.onclick = () => {
+          if (selected === item.name && !right.disabled) {
+            connected++; right.disabled = true; right.textContent = "Conectado"; right.style.opacity = "0.6";
+            if (connected === colors.length) completeTask(task);
+          } else { showMessage("Cable incorrecto"); }
+        };
+        row.appendChild(left); row.appendChild(right); wireGame.appendChild(row);
+      });
+      document.getElementById("closeModal").onclick = closeModal;
+    }
+
+    function renderButtonsTask(task) {
+      const order = [1, 2, 3, 4]; let current = 0;
+      modalContent.innerHTML = `<h2>Activar botones</h2><p>Presiona los botones en orden: 1, 2, 3, 4.</p><div id="buttonGame"></div><button class="closeBtn" id="closeModal">Cerrar</button>`;
+      const buttonGame = document.getElementById("buttonGame");
+      [3, 1, 4, 2].forEach((num) => {
+        const btn = document.createElement("button"); btn.className = "gameButton"; btn.textContent = num;
+        btn.onclick = () => {
+          if (num === order[current]) {
+            btn.classList.add("active"); btn.disabled = true; current++;
+            if (current === order.length) completeTask(task);
+          } else {
+            current = 0;
+            document.querySelectorAll(".gameButton").forEach((b) => { b.classList.remove("active"); b.disabled = false; });
+            showMessage("Orden incorrecto.");
+          }
+        };
+        buttonGame.appendChild(btn);
+      });
+      document.getElementById("closeModal").onclick = closeModal;
+    }
+
+    function renderProgressTask(task) {
+      let progress = 0; let holding = false;
+      modalContent.innerHTML = `<h2>Subir datos</h2><p>Mantén presionado hasta llenar la barra.</p><div id="miniProgressOuter"><div id="miniProgressInner"></div></div><button id="holdBtn">Mantener presionado</button><br><button class="closeBtn" id="closeModal">Cerrar</button>`;
+      const bar = document.getElementById("miniProgressInner");
+      const holdBtn = document.getElementById("holdBtn");
+      holdBtn.onmousedown = () => holding = true; holdBtn.onmouseup = () => holding = false; holdBtn.onmouseleave = () => holding = false;
+      holdBtn.ontouchstart = () => holding = true; holdBtn.ontouchend = () => holding = false;
+      const interval = setInterval(() => {
+        if (!modalOpen || task.completed) { clearInterval(interval); return; }
+        if (holding) { progress += 2; bar.style.width = `${progress}%`; if (progress >= 100) { clearInterval(interval); completeTask(task); } }
+      }, 60);
+      document.getElementById("closeModal").onclick = () => { clearInterval(interval); closeModal(); };
+    }
+
+    // --- FÍSICAS Y COLISIONES ---
+    function checkCollision(nextX, nextZ) {
+      const playerBox = new THREE.Box3(
+        new THREE.Vector3(nextX - playerRadius, 0, nextZ - playerRadius),
+        new THREE.Vector3(nextX + playerRadius, 2.3, nextZ + playerRadius)
+      );
+      return collidableObjects.some((box) => playerBox.intersectsBox(box));
+    }
+
+    function updatePlayer() {
+      if (!gameStarted || modalOpen || gameOver) return;
+
+      const speed = keys["shift"] ? 0.22 : 0.13;
+      let moveX = 0; let moveZ = 0;
+
+      if (keys["w"]) moveZ += speed;
+      if (keys["s"]) moveZ -= speed;
+      if (keys["a"]) moveX += speed;
+      if (keys["d"]) moveX -= speed;
+
+      const targetX = player.position.x + moveX;
+      const targetZ = player.position.z + moveZ;
+
+      if (moveX !== 0 && !checkCollision(targetX, player.position.z)) player.position.x = targetX;
+      if (moveZ !== 0 && !checkCollision(player.position.x, targetZ)) player.position.z = targetZ;
+
+      if (moveX !== 0 || moveZ !== 0) player.rotation.y = Math.atan2(moveX, moveZ);
+
+      if (keys[" "] && isGrounded) { velocityY = 0.24; isGrounded = false; }
+      velocityY -= 0.014; player.position.y += velocityY;
+
+      if (player.position.y <= 0) { player.position.y = 0; velocityY = 0; isGrounded = true; }
+
+      socket.emit("playerMove", {
+        position: { x: player.position.x, y: player.position.y, z: player.position.z },
+        rotationY: player.rotation.y
+      });
+    }
+
+    // --- INTELIGENCIA ARTIFICIAL (BOT PERSIGUIENDO AL JUGADOR) ---
+    function updateBotsAI() {
+      if (!gameStarted || gameOver) return;
+
+      crewmateBots.forEach((bot) => {
+        if (!bot.alive || !bot.isBotImpostor) return;
+
+        // El bot impostor calcula la dirección hacia el jugador principal
+        const dir = new THREE.Vector3().subVectors(player.position, bot.mesh.position);
+        const distanceToPlayer = dir.length();
+
+        // Si te atrapa (rango muy cercano)
+        if (distanceToPlayer < 1.5) {
+          player.rotation.z = Math.PI / 2; // El jugador cae muerto
+          player.position.y = 0.2;
+          triggerGameEnd(false, "¡DERROTA!<br>El Impostor bot te ha atrapado.");
+          return;
+        }
+
+        // Movimiento de persecución del bot impostor
+        dir.normalize();
+        const botSpeed = 0.075; // Velocidad de persecución equilibrada
+        
+        bot.mesh.position.x += dir.x * botSpeed;
+        bot.mesh.position.z += dir.z * botSpeed;
+
+        // El bot rota mirando hacia el jugador
+        bot.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+      });
+    }
+
+    function updateGameInteractions() {
+      if (!gameStarted) return;
+
+      // 1. Interacción Tripulante -> Hacer Tareas
+      if (!isImpostor) {
+        activeTask = null;
+        for (const task of taskStations) {
+          task.marker.position.y = 2.2 + Math.sin(Date.now() * 0.004) * 0.15;
+          const distance = player.position.distanceTo(task.position);
+          if (distance < 3 && !task.completed) { activeTask = task; break; }
+        }
+        if (activeTask && !modalOpen) {
+          taskHint.textContent = `Presiona E para hacer tarea: ${activeTask.label}`;
+          taskHint.style.display = "block";
+        } else {
+          taskHint.style.display = "none";
+        }
+      } 
+      // 2. Interacción Impostor -> Rango para Eliminar BOTS
+      else {
+        let anyBotInRange = false;
+        for (const bot of crewmateBots) {
+          if (bot.alive) {
+            const killDistance = player.position.distanceTo(bot.mesh.position);
+            if (killDistance < 3.5 && !gameOver) {
+              anyBotInRange = true;
+              break;
+            }
+          }
+        }
+
+        if (anyBotInRange) {
+          killBtn.disabled = false;
+          taskHint.textContent = `Presiona Q para ELIMINAR Tripulante`;
+          taskHint.style.display = "block";
+        } else {
+          killBtn.disabled = true;
+          taskHint.style.display = "none";
+        }
+      }
+    }
+
+    function updateCamera() {
+      const cameraOffset = new THREE.Vector3(0, 10, -10);
+      const targetPosition = player.position.clone().add(cameraOffset);
+      camera.position.lerp(targetPosition, 0.08);
+      camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+    }
+
+    // --- BUCLE CENTRAL ---
+    function animate() {
+      requestAnimationFrame(animate);
+      updatePlayer();
+      updateBotsAI(); // Corre la persecución automática del bot impostor
+      updateGameInteractions();
+      updateCamera();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
